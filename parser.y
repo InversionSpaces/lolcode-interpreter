@@ -28,6 +28,8 @@
 %code requires {
     #include <string>
 
+    #include "ast.hh"
+
     namespace lol {
         class scanner;
         class driver;
@@ -78,25 +80,39 @@
 %token <float> float "float"
 %token <std::string> string "string"
 
+%nterm <ast::Block> block
+%nterm <ast::Assign> assign
+%nterm <ast::Stmt> stmt
+%nterm <ast::Expr> expr
+
 %%
 %start programm;
 
-programm: PROGBEGIN string NEWLINE codeblock PROGEND {
-    cout << "programm matched" << endl;
-};
+programm: 
+    PROGBEGIN string[version] NEWLINE block[code] PROGEND 
+    { driver.result = ast::AST($version, $code); };
 
-codeblock: %empty
-    | statement codeblock;
+block: 
+    %empty 
+    { $$ = ast::creator<ast::Block>::create(); }
+    | stmt block[other]
+    { $$ = ast::creator<ast::Block>::create($stmt, $other); };
 
-statement: varstmt {
-    cout << "statement matched" << endl;
-};
+stmt: 
+    assign
+    { $$ = $assign; };
 
-varstmt: VAR id ASSIGN expr NEWLINE;
+assign:
+    VAR id ASSIGN expr[value] NEWLINE
+    { $$ = ast::creator<ast::Assign>::create($id, $value); };
 
-expr: int { cout << "int matched" << endl; }
-    | float { cout << "float matched" << endl; }
-    | string { cout << "string matched" << endl; };
+expr:
+    int[val]
+    { $$ = ast::creator<ast::Constant>::create($val); }
+    | float[val]
+    { $$ = ast::creator<ast::Constant>::create($val); }
+    | string[val]
+    { $$ = ast::creator<ast::Constant>::create($val); };
 %%
 
 // Error function for parser

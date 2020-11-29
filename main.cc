@@ -2,9 +2,8 @@
 #include <fstream>
 #include <string>
 
-#include "scanner.hh"
-#include "parser.hh"
 #include "driver.hh"
+#include "ast.hh"
 
 int main(int argc, char* argv[]) {
     if (argc < 1)
@@ -22,5 +21,7 @@ int main(int argc, char* argv[]) {
     std::string fname(argv[1]);
     lol::driver driver;
 
-    driver.parse(fname);
+    ast::AST result = driver.parse(fname);
+    ast::PrintVisitor visitor;
+    visitor.visit(&result);
 }
