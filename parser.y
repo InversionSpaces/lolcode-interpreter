@@ -6,6 +6,9 @@
 // as well as a few other declarations
 %defines
 
+// Enable locations support
+%locations
+
 // This option with next makes 
 // yylex to have signature 
 // as below
@@ -27,6 +30,7 @@
 
     namespace lol {
         class scanner;
+        class driver;
     }
 //
     #include <iostream>
@@ -38,17 +42,24 @@
 
 // Pass scanner as parameter to parser
 %parse-param {lol::scanner& scanner}
+// Pass driver as parameter to parser
+%parse-param {lol::driver& driver}
 
 %code {
     #include "scanner.hh"
+    #include "driver.hh"
 
-    static lol::parser::symbol_type yylex(lol::scanner &scanner) {
+    static lol::parser::symbol_type yylex(
+        lol::scanner& scanner
+    ) {
+        // this will update scanner.location
         return scanner.scanToken();
     }
 }
 
 // Declaration of tokens without values
 %token
+    END 0 "EOF"
     NEWLINE "\n"
     PROGBEGIN "HAI"
     PROGEND "KTHXBYE"
@@ -89,7 +100,7 @@ expr: int { cout << "int matched" << endl; }
 %%
 
 // Error function for parser
-void lol::parser::error(const std::string& m)
+void lol::parser::error(const lol::location& loc, const std::string& m)
 {
-    cerr << m << '\n';
+    cerr << loc << " : " << m << endl;
 }

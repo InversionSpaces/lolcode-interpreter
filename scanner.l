@@ -16,11 +16,23 @@ float   [0-9]+\.[0-9]*
 string  \"[^\"]*\"
 blank   [ \t\r]
 
+/* Additional states */
 %x INLINE_COMMENT
 %x MULTILINE_COMMENT
 
+%{
+    // Code run each time a pattern is matched.
+    #define YY_USER_ACTION loc.columns(yyleng);
+%}
+
 %%
-{blank}+    ;
+%{
+    // Code run each time yylex is called.
+    // To move location
+    loc.step();
+%}
+
+{blank}+    loc.step();
 
 "BTW"       BEGIN(INLINE_COMMENT);
 
@@ -33,59 +45,27 @@ blank   [ \t\r]
 <MULTILINE_COMMENT>.       ;
 <MULTILINE_COMMENT>\n      ;
 
-"HAI"       {
-    return lol::parser::make_PROGBEGIN();
-}
+"HAI"       return lol::parser::make_PROGBEGIN  (loc);
+"KTHXBYE"   return lol::parser::make_PROGEND    (loc);
+"I HAS A"   return lol::parser::make_VAR        (loc);
+"ITZ"       return lol::parser::make_ASSIGN     (loc);
+"R"         return lol::parser::make_REASSIGN   (loc);
+"DIFF OF"   return lol::parser::make_DIFF       (loc);
+"SUM OF"    return lol::parser::make_SUM        (loc);
+"PRODUKT"   return lol::parser::make_PRODUCT    (loc);
+"QUOSHUNT"  return lol::parser::make_SLASH      (loc);
 
-"KTHXBYE"   {
-    return lol::parser::make_PROGEND();
-}
-
-"I HAS A"   {
-    return lol::parser::make_VAR();
-}
-
-"ITZ"       {
-    return lol::parser::make_ASSIGN();
-}
-
-"R"         {
-    return lol::parser::make_REASSIGN();
-}
-
-"DIFF OF"   {
-    return lol::parser::make_DIFF();
-}
-
-"SUM OF"    {
-    return lol::parser::make_SUM();
-}
-
-"PRODUKT"   {
-    return lol::parser::make_PRODUCT();
-}
-
-"QUOSHUNT"  {
-    return lol::parser::make_SLASH();
-}
-
-{int}       {
-    return lol::parser::make_int(atoi(yytext));
-}
-
-{float}     {
-    return lol::parser::make_float(atof(yytext));
-}
-
-{id}        {
-    return lol::parser::make_id(yytext);
-}
-
-{string}    {
-    return lol::parser::make_string(yytext);
-}
+{int}       return lol::parser::make_int        (atoi(yytext), loc);
+{float}     return lol::parser::make_float      (atof(yytext), loc);
+{id}        return lol::parser::make_id         (yytext, loc);
+{string}    return lol::parser::make_string     (yytext, loc);
 
 \n          {
-    return lol::parser::make_NEWLINE();    
+    // Keep track of location
+    // yyleng is 1
+    loc.lines(yyleng); loc.step();
+    return lol::parser::make_NEWLINE(loc);
 }
+
+<<EOF>>     return lol::parser::make_END        (loc);
 %%
