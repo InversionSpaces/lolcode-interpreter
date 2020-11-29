@@ -6,17 +6,50 @@
 // as well as a few other declarations
 %defines
 
+// This option with next makes 
+// yylex to have signature 
+// as below
+%define api.token.constructor
+
 // Declare value type - variant
 // Like union, but for C++
 // Can store any C++ type
 %define api.value.type variant
 
+// API namespace
+%define api.namespace {lol}
+
+// Token prefixes
+%define api.token.prefix {LOLTOK_}
+
 %code requires {
     #include <string>
+
+    namespace lol {
+        class scanner;
+    }
+//
+    #include <iostream>
+    using namespace std;
+}
+
+// Pass scanner as parameter to yylex
+%lex-param {lol::scanner& scanner}
+
+// Pass scanner as parameter to parser
+%parse-param {lol::scanner& scanner}
+
+%code {
+    #include "scanner.hh"
+
+    static lol::parser::symbol_type yylex(lol::scanner &scanner) {
+        return scanner.scanToken();
+    }
 }
 
 // Declaration of tokens without values
 %token
+    NEWLINE "\n"
     PROGBEGIN "HAI"
     PROGEND "KTHXBYE"
     VAR "I HAS A"
@@ -29,21 +62,34 @@
 ;
 
 // Declaration of tokens with values
-%token <std::string> IDENTIFIER "identifier"
-%token <int> INTEGER "integer"
-%token <float> FLOAT "float"
-%token <std::string> STRING "string"
+%token <std::string> id "identifier"
+%token <int> int "integer"
+%token <float> float "float"
+%token <std::string> string "string"
 
 %%
-%start programm
-programm: PROGBEGIN STRING codeblock PROGEND;
+%start programm;
+
+programm: PROGBEGIN string NEWLINE codeblock PROGEND {
+    cout << "programm matched" << endl;
+};
 
 codeblock: %empty
     | statement codeblock;
 
-statement: varstmt;
+statement: varstmt {
+    cout << "statement matched" << endl;
+};
 
-varstmt: VAR IDENTIFIER ASSIGN expr;
+varstmt: VAR id ASSIGN expr NEWLINE;
 
-expr: NUMBER;
+expr: int { cout << "int matched" << endl; }
+    | float { cout << "float matched" << endl; }
+    | string { cout << "string matched" << endl; };
 %%
+
+// Error function for parser
+void lol::parser::error(const std::string& m)
+{
+    cerr << m << '\n';
+}

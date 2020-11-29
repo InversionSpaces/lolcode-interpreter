@@ -9,11 +9,13 @@
 
 // Say flex what function to implement
 #undef YY_DECL
-#define YY_DECL /*yy::parser::symbol_type*/int lol::LolScanner::scanToken()
+#define YY_DECL lol::parser::symbol_type lol::scanner::scanToken()
+
+#include "parser.hh"
 
 namespace lol {
-class LolScanner: public lolFlexLexer {
+class scanner: public lolFlexLexer {
 public:
-    virtual /*yy::parser::symbol_type*/ int scanToken();
+    virtual lol::parser::symbol_type scanToken();
 };
 } // namespace lol
