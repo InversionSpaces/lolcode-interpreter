@@ -3,9 +3,11 @@
 #include <fstream>
 #include <string>
 
+// generated
 #include "location.hh"
+#include "lolparser.hh"
+
 #include "scanner.hh"
-#include "parser.hh"
 #include "ast.hh"
 
 namespace lol {

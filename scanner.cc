@@ -8,4 +8,4 @@ void scanner::restart(
     loc.initialize(&fname);
     yyrestart(&file);
 }
-}
+} // namespace lol

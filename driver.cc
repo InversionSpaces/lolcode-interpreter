@@ -1,6 +1,7 @@
+#include <string>
+
 #include "driver.hh"
 #include "ast.hh"
-#include <string>
 
 namespace lol{
 driver::driver() :

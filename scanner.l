@@ -1,8 +1,10 @@
 %{
     #include <stdlib.h>
 
+    // generated
+    #include "lolparser.hh"
+
     #include "scanner.hh"
-    #include "parser.hh"
 %}
 
 %option noyywrap nounput noinput batch debug

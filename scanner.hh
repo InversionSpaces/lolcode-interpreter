@@ -14,7 +14,8 @@
 #undef YY_DECL
 #define YY_DECL lol::parser::symbol_type lol::scanner::scanToken()
 
-#include "parser.hh"
+// generated
+#include "lolparser.hh"
 #include "location.hh"
 
 namespace lol {
