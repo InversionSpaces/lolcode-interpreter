@@ -17,6 +17,8 @@ private:
     lol::parser parser;
 
     std::ifstream stream;
+
+    // TODO make it std::optional
     ast::AST result;
 public:
     driver();

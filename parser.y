@@ -61,17 +61,19 @@
 
 // Declaration of tokens without values
 %token
-    END 0 "EOF"
-    NEWLINE "\n"
-    PROGBEGIN "HAI"
-    PROGEND "KTHXBYE"
-    VAR "I HAS A"
-    ASSIGN "ITZ"
-    REASSIGN "R"
-    DIFF "DIFF OF"
-    SUM "SUM OF"
-    PRODUCT "PRODUKT"
-    SLASH "QUOSHUNT"
+    END     0   "EOF"
+    NEWLINE     "\n"
+    PROGBEGIN   "HAI"
+    PROGEND     "KTHXBYE"
+    VAR         "I HAS A"
+    ASSIGN      "ITZ"
+    REASSIGN    "R"
+    DIFF        "DIFF OF"
+    SUM         "SUM OF"
+    PRODUCT     "PRODUKT"
+    SLASH       "QUOSHUNT"
+    TRUE        "WIN"
+    FALSE       "FAIL"
 ;
 
 // Declaration of tokens with values
@@ -80,16 +82,17 @@
 %token <float> float "float"
 %token <std::string> string "string"
 
-%nterm <ast::BlockRep> block
-%nterm <ast::AssignRep> assign
-%nterm <ast::StmtRep> stmt
-%nterm <ast::ExprRep> expr
+%nterm <ast::BlockRep>      block
+%nterm <ast::AssignRep>     assign
+%nterm <ast::StmtRep>       stmt
+%nterm <ast::ConstantRep>   literal
+%nterm <ast::ExprRep>       expr
 
 %%
 %start programm;
 
 programm: 
-    PROGBEGIN string[version] NEWLINE block[code] PROGEND 
+    PROGBEGIN string[version] newlines block[code] PROGEND 
     { driver.result = ast::AST($version, $code); };
 
 block: 
@@ -103,16 +106,34 @@ stmt:
     { $$ = $assign; };
 
 assign:
-    VAR id ASSIGN expr[value] NEWLINE
+    VAR id newlines
+    { $$ = 
+        ast::creator<ast::AssignRep>::create(
+            $id, ast::creator<ast::ConstantRep>::create(ast::untyped)
+        ); 
+    };
+    | VAR id ASSIGN expr[value] newlines
+    { $$ = ast::creator<ast::AssignRep>::create($id, $value); };
+    | id REASSIGN expr[value] newlines
     { $$ = ast::creator<ast::AssignRep>::create($id, $value); };
 
 expr:
+    literal[value]
+    { $$ = $value; }
+
+literal:
     int[val]
     { $$ = ast::creator<ast::ConstantRep>::create($val); }
     | float[val]
     { $$ = ast::creator<ast::ConstantRep>::create($val); }
     | string[val]
     { $$ = ast::creator<ast::ConstantRep>::create($val); };
+    | TRUE
+    { $$ = ast::creator<ast::ConstantRep>::create(true); }
+    | FALSE
+    { $$ = ast::creator<ast::ConstantRep>::create(false); }
+
+newlines: NEWLINE | newlines NEWLINE
 %%
 
 // Error function for parser

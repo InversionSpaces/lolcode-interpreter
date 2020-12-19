@@ -56,6 +56,8 @@ blank   [ \t\r]
 "SUM OF"    return lol::parser::make_SUM        (loc);
 "PRODUKT"   return lol::parser::make_PRODUCT    (loc);
 "QUOSHUNT"  return lol::parser::make_SLASH      (loc);
+"WIN"       return lol::parser::make_TRUE       (loc);
+"FAIL"      return lol::parser::make_FALSE      (loc);
 
 {int}       return lol::parser::make_int        (atoi(yytext), loc);
 {float}     return lol::parser::make_float      (atof(yytext), loc);

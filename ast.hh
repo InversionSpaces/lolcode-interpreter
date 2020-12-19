@@ -43,7 +43,27 @@ using BlockRep = Rep<Block>;
 class Constant;
 using ConstantRep = Rep<Constant>;
 
-using Value = std::variant<std::string, int, float>;
+union untyped_t {};
+using Value = std::variant<std::string, int, float, bool, untyped_t>;
+static const untyped_t untyped {};
+
+struct value_str {
+    std::string operator()(const Value& val) const {
+        if (std::holds_alternative<std::string>(val))
+            return std::string("string: ") + std::get<std::string>(val);
+
+        else if (std::holds_alternative<int>(val))
+            return std::string("int: ") + std::to_string(std::get<int>(val));
+        
+        else if (std::holds_alternative<float>(val))
+            return std::string("float: ") + std::to_string(std::get<float>(val));
+
+        else if (std::holds_alternative<bool>(val))
+            return std::string("bool: ") + (std::get<bool>(val) ? "true" : "false");
+        
+        else return "untyped";
+    }
+};
 
 class Visitor;
 
@@ -150,8 +170,12 @@ public:
 class PrintVisitor : public Visitor {
 public:
     void traverse(const AST& ast) {
-        std::cout << "<AST>\n";
+        std::cout   << "<AST ver="
+                    << ast.ver()
+                    << ">\n";
+
         visit(get(ast.code()));
+
         std::cout << "</AST>\n";
     }
 
@@ -169,19 +193,19 @@ public:
     }
 
     virtual void visit(const Assign& assign) {
-        std::cout
-            << "<assign var="
-            << assign.var()
-            << ">\n";
+        std::cout   << "<assign var="
+                    << assign.var()
+                    << ">\n";
 
         visit(get(assign.expr()));
 
         std::cout << "</assign>\n";
     }
 
-    virtual void visit(const Constant& constant) {
-        std::cout << "<constant>\n";
-        std::cout << "</constant>\n";
+    virtual void visit(const Constant& cnst) {
+        std::cout   << "<constant>\n"
+                    << value_str {} (cnst.val()) << "\n"
+                    << "</constant>\n";
     }
 };
 } // namespace ast
