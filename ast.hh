@@ -23,112 +23,164 @@ struct creator<Rep<T>> {
     }
 };
 
+template<typename T>
+const T& get(const Rep<T>& rep) {
+    return *rep;
+}
+
+class ExprBase;
+using ExprRep = Rep<ExprBase>;
+
+class StmtBase;
+using StmtRep = Rep<StmtBase>;
+
+class Assign;
+using AssignRep = Rep<Assign>;
+
+class Block;
+using BlockRep = Rep<Block>;
+
+class Constant;
+using ConstantRep = Rep<Constant>;
+
 using Value = std::variant<std::string, int, float>;
 
-class ExprBase {
+class Visitor;
+
+class ASTNode {
 public:
-    virtual ~ExprBase() {}
+    virtual void accept(Visitor& visitor) const = 0;
 };
 
-using Expr = Rep<ExprBase>;
-
-class StmtBase {
+class ExprBase : public ASTNode {
 public:
-    virtual ~StmtBase() {}
+    virtual void accept(Visitor& visitor) const = 0;
 };
 
-using Stmt = Rep<StmtBase>;
-
-class AssignImpl : public StmtBase {
-    std::string var;
-    Expr expr;
+class StmtBase : public ASTNode {
 public:
-    AssignImpl(const std::string& var, const Expr& expr) :
-        var(var), expr(expr) {}
-
-    friend class PrintVisitor;
+    virtual void accept(Visitor& visitor) const = 0;
 };
 
-using Assign = Rep<AssignImpl>;
-
-class BlockImpl;
-using Block = Rep<BlockImpl>;
-
-class BlockImpl : public StmtBase {
-    std::list<Stmt> stmts;
-
-    BlockImpl(std::list<Stmt> stmts) :
-        stmts(stmts) {}
+class Visitor {
 public:
-    BlockImpl() {}
+    // should just call accept
+    virtual void visit(const ASTNode&) = 0;
 
-    BlockImpl(const Stmt& stmt, const Block& other) :
-        stmts(other->stmts) {
-        stmts.push_front(stmt);
+    virtual void visit(const Assign&) = 0;
+    virtual void visit(const Block&) = 0;
+    virtual void visit(const Constant&) = 0;
+};
+
+class Assign : public StmtBase {
+    std::string _var;
+    ExprRep _expr;
+public:
+    Assign(const std::string& var, const ExprRep& expr) :
+        _var(var), _expr(expr) {}
+
+    const std::string& var() const {
+        return _var;
     }
 
-    friend class PrintVisitor;
+    const ExprRep& expr() const {
+        return _expr;
+    }
+
+    virtual void accept(Visitor& visitor) const {
+        visitor.visit(*this);
+    }
 };
 
-class ConstantImpl : public ExprBase {
-    Value val;
-public:
-    ConstantImpl(const Value& val) :
-        val(val) {}
+class Block : public StmtBase {
+    std::list<StmtRep> _stmts;
     
-    friend class PrintVisitor;
+    Block(std::list<StmtRep> stmts) :
+        _stmts(stmts) {}
+public:
+    Block() {}
+
+    Block(const StmtRep& stmt, const BlockRep& other) :
+        _stmts(other->_stmts) {
+        _stmts.push_front(stmt);
+    }
+
+    const std::list<StmtRep>& stmts() const {
+        return _stmts;
+    }
+
+    virtual void accept(Visitor& visitor) const {
+        visitor.visit(*this);
+    }
 };
 
-using Constant = Rep<ConstantImpl>;
+class Constant : public ExprBase {
+    Value _val;
+public:
+    Constant(const Value& val) :
+        _val(val) {}
+
+    const Value& val() const {
+        return _val;
+    }
+    
+    virtual void accept(Visitor& visitor) const {
+        visitor.visit(*this);
+    }
+};
 
 class AST {
-    std::string version;
-    Block code;
+    std::string _ver;
+    BlockRep _code;
 public:
     AST() {}
 
-    AST(const std::string& version, const Block& code) :
-        version(version), code(code) {}
+    AST(const std::string& ver, const BlockRep& code) :
+        _ver(ver), _code(code) {}
     
-    friend class PrintVisitor;
+    const std::string& ver() const {
+        return _ver;
+    }
+
+    const BlockRep& code() const {
+        return _code;
+    }
 };
 
-class PrintVisitor {
+class PrintVisitor : public Visitor {
 public:
-    void visit(const AST* ast) {
-        std::cout
-            << "<AST ver="
-            << ast->version
-            << ">\n";
-
-        visit(ast->code.get());
-
+    void traverse(const AST& ast) {
+        std::cout << "<AST>\n";
+        visit(get(ast.code()));
         std::cout << "</AST>\n";
     }
 
-    void visit(const BlockImpl* block) {
+    virtual void visit(const ASTNode& node) final {
+        node.accept(*this);
+    }
+
+    virtual void visit(const Block& block) {
         std::cout << "<block>\n";
 
-        //for (auto stmt: block->stmts)
-        //    visit(stmt.get());
+        for (const StmtRep& stmt: block.stmts())
+            visit(get(stmt));
 
         std::cout << "</block>\n";
     }
 
-    void visit(const AssignImpl* assign) {
+    virtual void visit(const Assign& assign) {
         std::cout
             << "<assign var="
-            << assign->var
+            << assign.var()
             << ">\n";
 
-        //visit(assign->expr.get());
+        visit(get(assign.expr()));
 
         std::cout << "</assign>\n";
     }
 
-    void visit(const ConstantImpl* constant) {
+    virtual void visit(const Constant& constant) {
         std::cout << "<constant>\n";
-        //std::cout << constant->val.get<decltype(constant->val)>();
         std::cout << "</constant>\n";
     }
 };

@@ -23,5 +23,5 @@ int main(int argc, char* argv[]) {
 
     ast::AST result = driver.parse(fname);
     ast::PrintVisitor visitor;
-    visitor.visit(&result);
+    visitor.traverse(result);
 }

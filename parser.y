@@ -80,10 +80,10 @@
 %token <float> float "float"
 %token <std::string> string "string"
 
-%nterm <ast::Block> block
-%nterm <ast::Assign> assign
-%nterm <ast::Stmt> stmt
-%nterm <ast::Expr> expr
+%nterm <ast::BlockRep> block
+%nterm <ast::AssignRep> assign
+%nterm <ast::StmtRep> stmt
+%nterm <ast::ExprRep> expr
 
 %%
 %start programm;
@@ -94,9 +94,9 @@ programm:
 
 block: 
     %empty 
-    { $$ = ast::creator<ast::Block>::create(); }
+    { $$ = ast::creator<ast::BlockRep>::create(); }
     | stmt block[other]
-    { $$ = ast::creator<ast::Block>::create($stmt, $other); };
+    { $$ = ast::creator<ast::BlockRep>::create($stmt, $other); };
 
 stmt: 
     assign
@@ -104,15 +104,15 @@ stmt:
 
 assign:
     VAR id ASSIGN expr[value] NEWLINE
-    { $$ = ast::creator<ast::Assign>::create($id, $value); };
+    { $$ = ast::creator<ast::AssignRep>::create($id, $value); };
 
 expr:
     int[val]
-    { $$ = ast::creator<ast::Constant>::create($val); }
+    { $$ = ast::creator<ast::ConstantRep>::create($val); }
     | float[val]
-    { $$ = ast::creator<ast::Constant>::create($val); }
+    { $$ = ast::creator<ast::ConstantRep>::create($val); }
     | string[val]
-    { $$ = ast::creator<ast::Constant>::create($val); };
+    { $$ = ast::creator<ast::ConstantRep>::create($val); };
 %%
 
 // Error function for parser
