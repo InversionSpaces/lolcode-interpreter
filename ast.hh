@@ -9,46 +9,25 @@
 
 namespace ast {
 
-template<typename T>
-using Rep = std::shared_ptr<T>;
-
-template<typename T>
-struct creator;
-
-template<typename T>
-struct creator<Rep<T>> {
-    template<typename... Args>
-    static Rep<T> create(Args&&... args) {
-        return std::make_shared<T, Args...>(std::forward<Args>(args)...);
-    }
-};
-
-template<typename T>
-const T& get(const Rep<T>& rep) {
-    return *rep;
-}
-
-class ExprBase;
-using ExprRep = Rep<ExprBase>;
-
-class StmtBase;
-using StmtRep = Rep<StmtBase>;
-
-class Assign;
-using AssignRep = Rep<Assign>;
-
-class Block;
-using BlockRep = Rep<Block>;
-
-class Constant;
-using ConstantRep = Rep<Constant>;
-
 union untyped_t {};
 using Value = std::variant<std::string, int, float, bool, untyped_t>;
 static const untyped_t untyped {};
 
-struct value_str {
-    std::string operator()(const Value& val) const {
+template<typename T>
+using Rep = std::shared_ptr<T>;
+
+struct util {
+    template<typename T, typename... Args>
+    static Rep<T> create(Args&&... args) {
+        return std::make_shared<T, Args...>(std::forward<Args>(args)...);
+    }
+
+    template<typename T>
+    static const T& get(const Rep<T>& rep) {
+        return *rep;
+    }
+
+    static std::string to_string(const Value& val) {
         if (std::holds_alternative<std::string>(val))
             return std::string("string: ") + std::get<std::string>(val);
 
@@ -64,6 +43,43 @@ struct value_str {
         else return "untyped";
     }
 };
+
+class ExprBase;
+using ExprRep = Rep<ExprBase>;
+
+class StmtBase;
+using StmtRep = Rep<StmtBase>;
+
+class Assign;
+using AssignRep = Rep<Assign>;
+
+class Block;
+using BlockRep = Rep<Block>;
+
+template<int>
+class BinOp;
+
+enum BinOpID {
+    SUM,
+    DIFF,
+    PRODUCT,
+    SLASH
+};
+
+using Sum = BinOp<SUM>;
+using SumRep = Rep<Sum>;
+
+using Diff = BinOp<DIFF>;
+using DiffRep = Rep<Diff>;
+
+using Product = BinOp<PRODUCT>;
+using ProductRep = Rep<Product>;
+
+using Slash = BinOp<SLASH>;
+using SlashRep = Rep<Slash>;
+
+class Constant;
+using ConstantRep = Rep<Constant>;
 
 class Visitor;
 
@@ -89,6 +105,10 @@ public:
 
     virtual void visit(const Assign&) = 0;
     virtual void visit(const Block&) = 0;
+    virtual void visit(const Sum&) = 0;
+    virtual void visit(const Diff&) = 0;
+    virtual void visit(const Product&) = 0;
+    virtual void visit(const Slash&) = 0;
     virtual void visit(const Constant&) = 0;
 };
 
@@ -149,6 +169,27 @@ public:
     }
 };
 
+template<int id>
+class BinOp : public ExprBase {
+    ExprRep _lhs;
+    ExprRep _rhs;
+public:
+    BinOp(const ExprRep& lhs, const ExprRep& rhs) :
+        _lhs(lhs), _rhs(rhs) {}
+
+    const ExprRep& lhs() const {
+        return _lhs;
+    }
+
+    const ExprRep& rhs() const {
+        return _rhs;
+    }
+    
+    virtual void accept(Visitor& visitor) const {
+        visitor.visit(*this);
+    }
+};
+
 class AST {
     std::string _ver;
     BlockRep _code;
@@ -168,44 +209,122 @@ public:
 };
 
 class PrintVisitor : public Visitor {
+    int level;
 public:
+    PrintVisitor() : level(0) {}
+
     void traverse(const AST& ast) {
         std::cout   << "<AST ver="
                     << ast.ver()
                     << ">\n";
 
-        visit(get(ast.code()));
+        visit(util::get(ast.code()));
 
         std::cout << "</AST>\n";
     }
 
-    virtual void visit(const ASTNode& node) final {
+    virtual void visit(const ASTNode& node) override {
         node.accept(*this);
     }
 
-    virtual void visit(const Block& block) {
-        std::cout << "<block>\n";
+    virtual void visit(const Block& block) override {
+        std::string prefix(level, '\t');
 
+        std::cout   << prefix
+                    << "<block>\n";
+
+        ++level;
         for (const StmtRep& stmt: block.stmts())
-            visit(get(stmt));
+            visit(util::get(stmt));
+        --level;
 
-        std::cout << "</block>\n";
+        std::cout   << prefix
+                    << "</block>\n";
     }
 
-    virtual void visit(const Assign& assign) {
-        std::cout   << "<assign var="
+    virtual void visit(const Assign& assign) override {
+        std::string prefix(level, '\t');
+
+        std::cout   << prefix
+                    << "<assign var="
                     << assign.var()
                     << ">\n";
 
-        visit(get(assign.expr()));
+        ++level;
+        visit(util::get(assign.expr()));
+        --level;
 
-        std::cout << "</assign>\n";
+        std::cout   << prefix
+                    << "</assign>\n";
     }
 
-    virtual void visit(const Constant& cnst) {
-        std::cout   << "<constant>\n"
-                    << value_str {} (cnst.val()) << "\n"
-                    << "</constant>\n";
+    virtual void visit(const Sum& op) override {
+        std::string prefix(level, '\t');
+
+        std::cout   << prefix
+                    << "<sum>\n";
+        
+        level++;
+        visit(util::get(op.lhs()));
+        visit(util::get(op.rhs()));
+        level--;
+        
+        std::cout   << prefix
+                    << "</sum>\n";
+    }
+
+    virtual void visit(const Diff& op) override {
+        std::string prefix(level, '\t');
+
+        std::cout   << prefix
+                    << "<diff>\n";
+        
+        level++;
+        visit(util::get(op.lhs()));
+        visit(util::get(op.rhs()));
+        level--;
+        
+        std::cout   << prefix
+                    << "</diff>\n";
+    }
+
+    virtual void visit(const Product& op) override {
+        std::string prefix(level, '\t');
+
+        std::cout   << prefix
+                    << "<product>\n";
+        
+        level++;
+        visit(util::get(op.lhs()));
+        visit(util::get(op.rhs()));
+        level--;
+        
+        std::cout   << prefix
+                    << "</product>\n";
+    }
+
+    virtual void visit(const Slash& op) override {
+        std::string prefix(level, '\t');
+
+        std::cout   << prefix
+                    << "<slash>\n";
+        
+        level++;
+        visit(util::get(op.lhs()));
+        visit(util::get(op.rhs()));
+        level--;
+        
+        std::cout   << prefix
+                    << "</slash>\n";
+    }
+
+    virtual void visit(const Constant& cnst) override {
+        std::string prefix(level, '\t');
+
+        std::cout   << prefix
+                    << "<constant> "
+                    << util::to_string(cnst.val())
+                    << " </constant>\n";
     }
 };
 } // namespace ast

@@ -56,13 +56,14 @@ blank   [ \t\r]
 "SUM OF"    return lol::parser::make_SUM        (loc);
 "PRODUKT"   return lol::parser::make_PRODUCT    (loc);
 "QUOSHUNT"  return lol::parser::make_SLASH      (loc);
-"WIN"       return lol::parser::make_TRUE       (loc);
-"FAIL"      return lol::parser::make_FALSE      (loc);
+"AN"        return lol::parser::make_AND        (loc);
 
 {int}       return lol::parser::make_int        (atoi(yytext), loc);
 {float}     return lol::parser::make_float      (atof(yytext), loc);
-{id}        return lol::parser::make_id         (yytext, loc);
+"WIN"       return lol::parser::make_bool       (true, loc);
+"FAIL"      return lol::parser::make_bool       (false, loc);
 {string}    return lol::parser::make_string     (yytext, loc);
+{id}        return lol::parser::make_id         (yytext, loc);
 
 \n          {
     // Keep track of location

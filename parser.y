@@ -68,19 +68,19 @@
     VAR         "I HAS A"
     ASSIGN      "ITZ"
     REASSIGN    "R"
-    DIFF        "DIFF OF"
     SUM         "SUM OF"
+    DIFF        "DIFF OF"
     PRODUCT     "PRODUKT"
     SLASH       "QUOSHUNT"
-    TRUE        "WIN"
-    FALSE       "FAIL"
+    AND         "AN"
 ;
 
 // Declaration of tokens with values
-%token <std::string> id "identifier"
-%token <int> int "integer"
-%token <float> float "float"
-%token <std::string> string "string"
+%token <int>            int     "int"
+%token <float>          float   "float"
+%token <bool>           bool    "bool"
+%token <std::string>    string  "string"
+%token <std::string>    id      "id"
 
 %nterm <ast::BlockRep>      block
 %nterm <ast::AssignRep>     assign
@@ -92,48 +92,54 @@
 %start programm;
 
 programm: 
-    PROGBEGIN string[version] newlines block[code] PROGEND 
-    { driver.result = ast::AST($version, $code); };
+    PROGBEGIN string[version] NLS block[code] PROGEND 
+    { driver.result = ast::AST($version, $code); }
 
 block: 
     %empty 
-    { $$ = ast::creator<ast::BlockRep>::create(); }
+    { $$ = ast::util::create<ast::Block>(); }
     | stmt block[other]
-    { $$ = ast::creator<ast::BlockRep>::create($stmt, $other); };
+    { $$ = ast::util::create<ast::Block>($stmt, $other); }
 
 stmt: 
     assign
-    { $$ = $assign; };
+    { $$ = $assign; }
 
 assign:
-    VAR id newlines
+    VAR id NLS
     { $$ = 
-        ast::creator<ast::AssignRep>::create(
-            $id, ast::creator<ast::ConstantRep>::create(ast::untyped)
+        ast::util::create<ast::Assign>(
+            $id, ast::util::create<ast::Constant>(ast::untyped)
         ); 
-    };
-    | VAR id ASSIGN expr[value] newlines
-    { $$ = ast::creator<ast::AssignRep>::create($id, $value); };
-    | id REASSIGN expr[value] newlines
-    { $$ = ast::creator<ast::AssignRep>::create($id, $value); };
+    }
+    | VAR id ASSIGN expr[value] NLS
+    { $$ = ast::util::create<ast::Assign>($id, $value); }
+    | id REASSIGN expr[value] NLS
+    { $$ = ast::util::create<ast::Assign>($id, $value); }
 
 expr:
     literal[value]
     { $$ = $value; }
+    | SUM expr[lhs] AND expr[rhs]
+    { $$ = ast::util::create<ast::Sum>($lhs, $rhs); }
+    | DIFF expr[lhs] AND expr[rhs]
+    { $$ = ast::util::create<ast::Diff>($lhs, $rhs); }
+    | PRODUCT expr[lhs] AND expr[rhs]
+    { $$ = ast::util::create<ast::Product>($lhs, $rhs); }
+    | SLASH expr[lhs] AND expr[rhs]
+    { $$ = ast::util::create<ast::Slash>($lhs, $rhs); }
 
 literal:
     int[val]
-    { $$ = ast::creator<ast::ConstantRep>::create($val); }
+    { $$ = ast::util::create<ast::Constant>($val); }
     | float[val]
-    { $$ = ast::creator<ast::ConstantRep>::create($val); }
+    { $$ = ast::util::create<ast::Constant>($val); }
     | string[val]
-    { $$ = ast::creator<ast::ConstantRep>::create($val); };
-    | TRUE
-    { $$ = ast::creator<ast::ConstantRep>::create(true); }
-    | FALSE
-    { $$ = ast::creator<ast::ConstantRep>::create(false); }
+    { $$ = ast::util::create<ast::Constant>($val); }
+    | bool[val]
+    { $$ = ast::util::create<ast::Constant>($val); }
 
-newlines: NEWLINE | newlines NEWLINE
+NLS: NEWLINE | NLS NEWLINE
 %%
 
 // Error function for parser
