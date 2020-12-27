@@ -41,27 +41,34 @@ blank   [ \t\r]
 "OBTW"      BEGIN(MULTILINE_COMMENT);
 
 <INLINE_COMMENT>[^\n]*  ;
-<INLINE_COMMENT>\n      BEGIN(INITIAL);
+<INLINE_COMMENT>\n      {
+    BEGIN(INITIAL);
+    return lol::parser::make_NEWLINE(loc);
+}
 
 <MULTILINE_COMMENT>"TLDR"  BEGIN(INITIAL);
 <MULTILINE_COMMENT>.       ;
 <MULTILINE_COMMENT>\n      ;
 
-"HAI"       return lol::parser::make_PROGBEGIN  (loc);
-"KTHXBYE"   return lol::parser::make_PROGEND    (loc);
-"I HAS A"   return lol::parser::make_VAR        (loc);
-"ITZ"       return lol::parser::make_ASSIGN     (loc);
-"R"         return lol::parser::make_REASSIGN   (loc);
-"DIFF OF"   return lol::parser::make_DIFF       (loc);
-"SUM OF"    return lol::parser::make_SUM        (loc);
-"PRODUKT"   return lol::parser::make_PRODUCT    (loc);
-"QUOSHUNT"  return lol::parser::make_SLASH      (loc);
-"AN"        return lol::parser::make_AND        (loc);
-"O RLY?"    return lol::parser::make_IF         (loc);
-"YA RLY"    return lol::parser::make_THEN       (loc);
-"MEBBE"     return lol::parser::make_ELSEIF     (loc);     
-"NO WAI"    return lol::parser::make_ELSE       (loc);        
-"OIC"       return lol::parser::make_ENDIF      (loc);       
+"HAI"               return lol::parser::make_PROGBEGIN  (loc);
+"KTHXBYE"           return lol::parser::make_PROGEND    (loc);
+"I HAS A"           return lol::parser::make_VAR        (loc);
+"ITZ"               return lol::parser::make_ASSIGN     (loc);
+"R"                 return lol::parser::make_REASSIGN   (loc);
+"DIFF OF"           return lol::parser::make_DIFF       (loc);
+"SUM OF"            return lol::parser::make_SUM        (loc);
+"PRODUKT OF"        return lol::parser::make_PRODUCT    (loc);
+"QUOSHUNT OF"       return lol::parser::make_SLASH      (loc);
+"AN"                return lol::parser::make_AND        (loc);
+"O RLY?"            return lol::parser::make_IF         (loc);
+"YA RLY"            return lol::parser::make_THEN       (loc);
+"MEBBE"             return lol::parser::make_ELSEIF     (loc);     
+"NO WAI"            return lol::parser::make_ELSE       (loc);        
+"OIC"               return lol::parser::make_ENDIF      (loc);
+"IM IN YR LOOP"     return lol::parser::make_LOOP       (loc);        
+"YR"                return lol::parser::make_FOR        (loc);      
+"WILE"              return lol::parser::make_WHILE      (loc);
+"IM OUTTA YR LOOP"  return lol::parser::make_ENDLOOP    (loc);
 
 {int}       return lol::parser::make_int        (atoi(yytext), loc);
 {float}     return lol::parser::make_float      (atof(yytext), loc);
@@ -70,9 +77,8 @@ blank   [ \t\r]
 {string}    return lol::parser::make_string     (yytext, loc);
 {id}        return lol::parser::make_id         (yytext, loc);
 
-\n          {
+\n+         {
     // Keep track of location
-    // yyleng is 1
     loc.lines(yyleng); loc.step();
     return lol::parser::make_NEWLINE(loc);
 }

@@ -6,7 +6,9 @@
 namespace lol{
 driver::driver() :
     scanner(),
-    parser(scanner, *this) {}
+    parser(scanner, *this) {
+    parser.set_debug_level(1);
+}
 
 ast::AST driver::parse(const std::string& fname) {
     stream.open(fname);

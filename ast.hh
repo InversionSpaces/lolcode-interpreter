@@ -59,6 +59,9 @@ using BlockRep = Rep<Block>;
 class IfStmt;
 using IfStmtRep = Rep<IfStmt>;
 
+class Loop;
+using LoopRep = Rep<Loop>;
+
 template<int>
 class BinOp;
 
@@ -108,6 +111,7 @@ public:
 
     virtual void visit(const Assign&) = 0;
     virtual void visit(const IfStmt&) = 0;
+    virtual void visit(const Loop&) = 0;
     virtual void visit(const Block&) = 0;
     virtual void visit(const Sum&) = 0;
     virtual void visit(const Diff&) = 0;
@@ -137,9 +141,9 @@ public:
 };
 
 class IfStmt : public StmtBase {
-    ExprRep _condition;
-    BlockRep _then;
-    BlockRep _otherwise;
+    ExprRep     _condition;
+    BlockRep    _then;
+    BlockRep    _otherwise;
 public:
     IfStmt( const ExprRep& condition, 
             const BlockRep& then,
@@ -156,6 +160,39 @@ public:
 
     const BlockRep& otherwise() const {
         return _otherwise;
+    }
+
+    virtual void accept(Visitor& visitor) const {
+        visitor.visit(*this);
+    }
+};
+
+class Loop : public StmtBase {
+    StmtRep     _init;
+    StmtRep     _step;
+    ExprRep     _condition;
+    BlockRep    _code;
+public:
+    Loop(   const StmtRep& init,
+            const StmtRep& step, 
+            const ExprRep& condition,
+            const BlockRep& code) :
+        _init(init), _step(step), _condition(condition), _code(code) {}
+
+    const StmtRep& init() const {
+        return _init;
+    }
+
+    const StmtRep& step() const {
+        return _step;
+    }
+
+    const ExprRep& condition() const {
+        return _condition;
+    }
+
+    const BlockRep& code() const {
+        return _code;
     }
 
     virtual void accept(Visitor& visitor) const {
@@ -287,6 +324,23 @@ public:
 
         std::cout   << prefix
                     << "</if>\n";
+    }
+
+    virtual void visit(const Loop& loop) override {
+        std::string prefix(level, '\t');
+
+        std::cout   << prefix
+                    << "<loop>\n";
+        
+        level++;
+        visit(util::get(loop.init()));
+        visit(util::get(loop.step()));
+        visit(util::get(loop.condition()));
+        visit(util::get(loop.code()));
+        level--;
+
+        std::cout   << prefix
+                    << "</loop>\n";
     }
 
     virtual void visit(const Assign& assign) override {

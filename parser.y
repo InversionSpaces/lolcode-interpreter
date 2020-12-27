@@ -9,6 +9,9 @@
 // Enable locations support
 %locations
 
+// Enable tracing
+%define parse.trace
+
 // This option with next makes 
 // yylex to have signature 
 // as below
@@ -78,6 +81,10 @@
     ELSEIF      "MEBBE"
     ELSE        "NO WAI"
     ENDIF       "OIC"
+    LOOP        "IM IN YR LOOP"
+    FOR         "YR"
+    WHILE       "WILE"
+    ENDLOOP     "IM OUTTA YR LOOP"
 ;
 
 // Declaration of tokens with values
@@ -92,6 +99,7 @@
 %nterm <ast::BlockRep>      block
 %nterm <ast::AssignRep>     assign
 %nterm <ast::IfStmtRep>     ifstmt
+%nterm <ast::LoopRep>       loop
 %nterm <ast::ExprRep>       expr
 %nterm <ast::ConstantRep>   literal
 
@@ -102,10 +110,10 @@ programm:
     PROGBEGIN string[version] NLS block[code] PROGEND 
     { driver.result = ast::AST($version, $code); }
 
-block: 
+block:
     %empty 
     { $$ = ast::util::create<ast::Block>(); }
-    | stmt block[other]
+    | stmt NLS block[other]
     { $$ = ast::util::create<ast::Block>($stmt, $other); }
 
 stmt: 
@@ -113,24 +121,30 @@ stmt:
     { $$ = $assign; }
     | ifstmt
     { $$ = $ifstmt; }
+    | loop
+    { $$ = $loop; }
 
 assign:
-    VAR id NLS
+    VAR id
     { $$ = 
         ast::util::create<ast::Assign>(
             $id, ast::util::create<ast::Constant>(ast::untyped)
         ); 
     }
-    | VAR id ASSIGN expr[value] NLS
+    | VAR id ASSIGN expr[value]
     { $$ = ast::util::create<ast::Assign>($id, $value); }
-    | id REASSIGN expr[value] NLS
+    | id REASSIGN expr[value]
     { $$ = ast::util::create<ast::Assign>($id, $value); }
 
 ifstmt:
-    expr[condition] IF NLS THEN NLS block[then] ENDIF NLS
+    expr[condition] IF NLS THEN NLS block[then] ENDIF
     { $$ = ast::util::create<ast::IfStmt>($condition, $then); }
-    | expr[condition] IF NLS THEN NLS block[then] ELSE NLS block[otherwise] ENDIF NLS
+    | expr[condition] IF NLS THEN NLS block[then] ELSE NLS block[otherwise] ENDIF
     { $$ = ast::util::create<ast::IfStmt>($condition, $then, $otherwise); }
+
+loop:
+    LOOP stmt[step] FOR stmt[init] WHILE expr[condition] NLS block[code] ENDLOOP
+    { $$ = ast::util::create<ast::Loop>($init, $step, $condition, $code); }
 
 expr:
     literal[value]
@@ -154,7 +168,7 @@ literal:
     | bool[val]
     { $$ = ast::util::create<ast::Constant>($val); }
 
-NLS: NEWLINE | NLS NEWLINE
+NLS: NEWLINE | NEWLINE NLS
 %%
 
 // Error function for parser

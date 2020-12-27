@@ -1,14 +1,27 @@
 HAI "1.3beta"
 
-I HAS A STRING          ITZ "DOGZ ARE GOOOD"    BTW type is YARN
+I HAS A summ ITZ SUM OF 21 AN 33         BTW 21 + 33
+I HAS A diff ITZ DIFF OF 90 AN 10        BTW 90 - 10
+I HAS A prod ITZ PRODUKT OF 12 AN 13     BTW 12 * 13
+I HAS A division ITZ QUOSHUNT OF 32 AN 43    BTW 32 / 43
 
-I HAS A INTEGER         ITZ 42                  BTW type is NUMBR
+I HAS A STRING  ITZ "DOGZ ARE GOOOD" BTW type is YARN
+I HAS A INTEGER ITZ 42               BTW type is NUMBR
+I HAS A FLOAT   ITZ 3.1415           BTW type is NUMBAR
+I HAS A BOOLEAN ITZ WIN              BTW type is TROOF
+I HAS A UNTYPED                      BTW type is NOOB
 
-I HAS A FLOAT           ITZ 3.1415              BTW type is NUMBAR
+I HAS A expr ITZ SUM OF PRODUKT OF 2 AN 5 AN QUOSHUNT OF 10 AN 3
 
-I HAS A BOOLEAN         ITZ FAIL                BTW type is TROOF
+SUM OF 2 AN 1 O RLY?
+    YA RLY
+        condvar R 1
+    NO WAI
+        condvar R 2
+OIC
 
-I HAS A UNTYPED                                 BTW type is NOOB
+IM IN YR LOOP i R 1 YR I HAS A x ITZ 0 WILE 0
+    I HAS A y ITZ 3
+IM OUTTA YR LOOP
 
-BTW LOLCODE IS COOL
 KTHXBYE
