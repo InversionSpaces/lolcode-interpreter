@@ -57,6 +57,11 @@ blank   [ \t\r]
 "PRODUKT"   return lol::parser::make_PRODUCT    (loc);
 "QUOSHUNT"  return lol::parser::make_SLASH      (loc);
 "AN"        return lol::parser::make_AND        (loc);
+"O RLY?"    return lol::parser::make_IF         (loc);
+"YA RLY"    return lol::parser::make_THEN       (loc);
+"MEBBE"     return lol::parser::make_ELSEIF     (loc);     
+"NO WAI"    return lol::parser::make_ELSE       (loc);        
+"OIC"       return lol::parser::make_ENDIF      (loc);       
 
 {int}       return lol::parser::make_int        (atoi(yytext), loc);
 {float}     return lol::parser::make_float      (atof(yytext), loc);

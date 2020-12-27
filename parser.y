@@ -73,6 +73,11 @@
     PRODUCT     "PRODUKT"
     SLASH       "QUOSHUNT"
     AND         "AN"
+    IF          "O RLY?"
+    THEN        "YA RLY"
+    ELSEIF      "MEBBE"
+    ELSE        "NO WAI"
+    ENDIF       "OIC"
 ;
 
 // Declaration of tokens with values
@@ -82,11 +87,13 @@
 %token <std::string>    string  "string"
 %token <std::string>    id      "id"
 
+// Declaration of nonterminals with values
+%nterm <ast::StmtRep>       stmt
 %nterm <ast::BlockRep>      block
 %nterm <ast::AssignRep>     assign
-%nterm <ast::StmtRep>       stmt
-%nterm <ast::ConstantRep>   literal
+%nterm <ast::IfStmtRep>     ifstmt
 %nterm <ast::ExprRep>       expr
+%nterm <ast::ConstantRep>   literal
 
 %%
 %start programm;
@@ -104,6 +111,8 @@ block:
 stmt: 
     assign
     { $$ = $assign; }
+    | ifstmt
+    { $$ = $ifstmt; }
 
 assign:
     VAR id NLS
@@ -116,6 +125,12 @@ assign:
     { $$ = ast::util::create<ast::Assign>($id, $value); }
     | id REASSIGN expr[value] NLS
     { $$ = ast::util::create<ast::Assign>($id, $value); }
+
+ifstmt:
+    expr[condition] IF NLS THEN NLS block[then] ENDIF NLS
+    { $$ = ast::util::create<ast::IfStmt>($condition, $then); }
+    | expr[condition] IF NLS THEN NLS block[then] ELSE NLS block[otherwise] ENDIF NLS
+    { $$ = ast::util::create<ast::IfStmt>($condition, $then, $otherwise); }
 
 expr:
     literal[value]

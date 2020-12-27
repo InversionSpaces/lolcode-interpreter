@@ -56,6 +56,9 @@ using AssignRep = Rep<Assign>;
 class Block;
 using BlockRep = Rep<Block>;
 
+class IfStmt;
+using IfStmtRep = Rep<IfStmt>;
+
 template<int>
 class BinOp;
 
@@ -104,6 +107,7 @@ public:
     virtual void visit(const ASTNode&) = 0;
 
     virtual void visit(const Assign&) = 0;
+    virtual void visit(const IfStmt&) = 0;
     virtual void visit(const Block&) = 0;
     virtual void visit(const Sum&) = 0;
     virtual void visit(const Diff&) = 0;
@@ -125,6 +129,33 @@ public:
 
     const ExprRep& expr() const {
         return _expr;
+    }
+
+    virtual void accept(Visitor& visitor) const {
+        visitor.visit(*this);
+    }
+};
+
+class IfStmt : public StmtBase {
+    ExprRep _condition;
+    BlockRep _then;
+    BlockRep _otherwise;
+public:
+    IfStmt( const ExprRep& condition, 
+            const BlockRep& then,
+            const BlockRep& otherwise=util::create<Block>()) :
+        _condition(condition), _then(then), _otherwise(otherwise) {}
+
+    const ExprRep& condition() const {
+        return _condition;
+    }
+
+    const BlockRep& then() const {
+        return _then;
+    }
+
+    const BlockRep& otherwise() const {
+        return _otherwise;
     }
 
     virtual void accept(Visitor& visitor) const {
@@ -240,6 +271,22 @@ public:
 
         std::cout   << prefix
                     << "</block>\n";
+    }
+
+    virtual void visit(const IfStmt& ifstmt) override {
+        std::string prefix(level, '\t');
+
+        std::cout   << prefix
+                    << "<if>\n";
+        
+        level++;
+        visit(util::get(ifstmt.condition()));
+        visit(util::get(ifstmt.then()));
+        visit(util::get(ifstmt.otherwise()));
+        level--;
+
+        std::cout   << prefix
+                    << "</if>\n";
     }
 
     virtual void visit(const Assign& assign) override {
