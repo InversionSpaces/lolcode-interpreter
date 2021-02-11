@@ -14,7 +14,7 @@ using Value = std::variant<std::string, int, float, bool, untyped_t>;
 static const untyped_t untyped {};
 
 template<typename T>
-using Rep = std::shared_ptr<T>;
+using Rep = std::shared_ptr<const T>;
 
 struct util {
     template<typename T, typename... Args>
@@ -89,18 +89,15 @@ using ConstantRep = Rep<Constant>;
 
 class Visitor;
 
-class ASTNode {
-public:
+struct ASTNode {
     virtual void accept(Visitor& visitor) const = 0;
 };
 
-class ExprBase : public ASTNode {
-public:
+struct ExprBase : public ASTNode {
     virtual void accept(Visitor& visitor) const = 0;
 };
 
-class StmtBase : public ASTNode {
-public:
+struct StmtBase : public ASTNode {
     virtual void accept(Visitor& visitor) const = 0;
 };
 
@@ -108,6 +105,11 @@ class Visitor {
 public:
     // should just call accept
     virtual void visit(const ASTNode&) = 0;
+
+    template<typename T>
+    void rvisit(const Rep<T>& rep) {
+        visit(util::get(rep));
+    }
 
     virtual void visit(const Assign&) = 0;
     virtual void visit(const IfStmt&) = 0;
@@ -120,101 +122,61 @@ public:
     virtual void visit(const Constant&) = 0;
 };
 
-class Assign : public StmtBase {
-    std::string _var;
-    ExprRep _expr;
-public:
-    Assign(const std::string& var, const ExprRep& expr) :
-        _var(var), _expr(expr) {}
+struct Assign : public StmtBase {
+    std::string var;
+    ExprRep expr;
 
-    const std::string& var() const {
-        return _var;
-    }
-
-    const ExprRep& expr() const {
-        return _expr;
-    }
+    Assign(const std::string& var_, const ExprRep& expr_) :
+        var(var_), expr(expr_) {}
 
     virtual void accept(Visitor& visitor) const {
         visitor.visit(*this);
     }
 };
 
-class IfStmt : public StmtBase {
-    ExprRep     _condition;
-    BlockRep    _then;
-    BlockRep    _otherwise;
-public:
-    IfStmt( const ExprRep& condition, 
-            const BlockRep& then,
-            const BlockRep& otherwise=util::create<Block>()) :
-        _condition(condition), _then(then), _otherwise(otherwise) {}
+struct IfStmt : public StmtBase {
+    ExprRep     condition;
+    BlockRep    then;
+    BlockRep    otherwise;
 
-    const ExprRep& condition() const {
-        return _condition;
-    }
-
-    const BlockRep& then() const {
-        return _then;
-    }
-
-    const BlockRep& otherwise() const {
-        return _otherwise;
-    }
+    IfStmt( const ExprRep& condition_,
+            const BlockRep& then_,
+            const BlockRep& otherwise_=util::create<Block>()) :
+        condition(condition_), then(then_), otherwise(otherwise_) {}
 
     virtual void accept(Visitor& visitor) const {
         visitor.visit(*this);
     }
 };
 
-class Loop : public StmtBase {
-    StmtRep     _init;
-    StmtRep     _step;
-    ExprRep     _condition;
-    BlockRep    _code;
-public:
-    Loop(   const StmtRep& init,
-            const StmtRep& step, 
-            const ExprRep& condition,
-            const BlockRep& code) :
-        _init(init), _step(step), _condition(condition), _code(code) {}
+struct Loop : public StmtBase {
+    StmtRep     init;
+    StmtRep     step;
+    ExprRep     condition;
+    BlockRep    code;
 
-    const StmtRep& init() const {
-        return _init;
-    }
-
-    const StmtRep& step() const {
-        return _step;
-    }
-
-    const ExprRep& condition() const {
-        return _condition;
-    }
-
-    const BlockRep& code() const {
-        return _code;
-    }
+    Loop(   const StmtRep& init_,
+            const StmtRep& step_,
+            const ExprRep& condition_,
+            const BlockRep& code_) :
+        init(init_), step(step_), condition(condition_), code(code_) {}
 
     virtual void accept(Visitor& visitor) const {
         visitor.visit(*this);
     }
 };
 
-class Block : public StmtBase {
-    std::list<StmtRep> _stmts;
+struct Block : public StmtBase {
+    std::list<StmtRep> stmts;
     
-    Block(std::list<StmtRep> stmts) :
-        _stmts(stmts) {}
-public:
+    Block(std::list<StmtRep> stmts_) :
+        stmts(stmts_) {}
+
     Block() {}
 
-    Block(const StmtRep& stmt, const BlockRep& other) :
-        _stmts(other->_stmts) {
-        _stmts.push_front(stmt);
-    }
-
-    const std::list<StmtRep>& stmts() const {
-        return _stmts;
+    Block(const StmtRep& stmt_, const BlockRep& other_) :
+        stmts(other_->stmts) {
+        stmts.push_front(stmt_);
     }
 
     virtual void accept(Visitor& visitor) const {
@@ -222,15 +184,11 @@ public:
     }
 };
 
-class Constant : public ExprBase {
-    Value _val;
-public:
-    Constant(const Value& val) :
-        _val(val) {}
+struct Constant : public ExprBase {
+    Value val;
 
-    const Value& val() const {
-        return _val;
-    }
+    Constant(const Value& val_) :
+        val(val_) {}
     
     virtual void accept(Visitor& visitor) const {
         visitor.visit(*this);
@@ -238,42 +196,26 @@ public:
 };
 
 template<int id>
-class BinOp : public ExprBase {
-    ExprRep _lhs;
-    ExprRep _rhs;
-public:
-    BinOp(const ExprRep& lhs, const ExprRep& rhs) :
-        _lhs(lhs), _rhs(rhs) {}
+struct BinOp : public ExprBase {
+    ExprRep lhs;
+    ExprRep rhs;
 
-    const ExprRep& lhs() const {
-        return _lhs;
-    }
-
-    const ExprRep& rhs() const {
-        return _rhs;
-    }
+    BinOp(const ExprRep& lhs_, const ExprRep& rhs_) :
+        lhs(lhs_), rhs(rhs_) {}
     
     virtual void accept(Visitor& visitor) const {
         visitor.visit(*this);
     }
 };
 
-class AST {
-    std::string _ver;
-    BlockRep _code;
-public:
+struct AST {
+    std::string ver;
+    BlockRep code;
+
     AST() {}
 
-    AST(const std::string& ver, const BlockRep& code) :
-        _ver(ver), _code(code) {}
-    
-    const std::string& ver() const {
-        return _ver;
-    }
-
-    const BlockRep& code() const {
-        return _code;
-    }
+    AST(const std::string& ver_, const BlockRep& code_) :
+        ver(ver_), code(code_) {}
 };
 
 class PrintVisitor : public Visitor {
@@ -281,18 +223,18 @@ class PrintVisitor : public Visitor {
 public:
     PrintVisitor() : level(0) {}
 
-    void traverse(const AST& ast) {
-        std::cout   << "<AST ver="
-                    << ast.ver()
-                    << ">\n";
-
-        visit(util::get(ast.code()));
-
-        std::cout << "</AST>\n";
-    }
-
     virtual void visit(const ASTNode& node) override {
         node.accept(*this);
+    }
+
+    void traverse(const AST& ast) {
+        std::cout   << "<AST ver="
+                    << ast.ver
+                    << ">\n";
+
+        rvisit(ast.code);
+
+        std::cout << "</AST>\n";
     }
 
     virtual void visit(const Block& block) override {
@@ -302,8 +244,8 @@ public:
                     << "<block>\n";
 
         ++level;
-        for (const StmtRep& stmt: block.stmts())
-            visit(util::get(stmt));
+        for (const StmtRep& stmt: block.stmts)
+            rvisit(stmt);
         --level;
 
         std::cout   << prefix
@@ -317,9 +259,9 @@ public:
                     << "<if>\n";
         
         level++;
-        visit(util::get(ifstmt.condition()));
-        visit(util::get(ifstmt.then()));
-        visit(util::get(ifstmt.otherwise()));
+        rvisit(ifstmt.condition);
+        rvisit(ifstmt.then);
+        rvisit(ifstmt.otherwise);
         level--;
 
         std::cout   << prefix
@@ -333,10 +275,10 @@ public:
                     << "<loop>\n";
         
         level++;
-        visit(util::get(loop.init()));
-        visit(util::get(loop.step()));
-        visit(util::get(loop.condition()));
-        visit(util::get(loop.code()));
+        rvisit(loop.init);
+        rvisit(loop.step);
+        rvisit(loop.condition);
+        rvisit(loop.code);
         level--;
 
         std::cout   << prefix
@@ -348,11 +290,11 @@ public:
 
         std::cout   << prefix
                     << "<assign var="
-                    << assign.var()
+                    << assign.var
                     << ">\n";
 
         ++level;
-        visit(util::get(assign.expr()));
+        rvisit(assign.expr);
         --level;
 
         std::cout   << prefix
@@ -366,8 +308,8 @@ public:
                     << "<sum>\n";
         
         level++;
-        visit(util::get(op.lhs()));
-        visit(util::get(op.rhs()));
+        rvisit(op.lhs);
+        rvisit(op.rhs);
         level--;
         
         std::cout   << prefix
@@ -381,8 +323,8 @@ public:
                     << "<diff>\n";
         
         level++;
-        visit(util::get(op.lhs()));
-        visit(util::get(op.rhs()));
+        rvisit(op.lhs);
+        rvisit(op.rhs);
         level--;
         
         std::cout   << prefix
@@ -396,8 +338,8 @@ public:
                     << "<product>\n";
         
         level++;
-        visit(util::get(op.lhs()));
-        visit(util::get(op.rhs()));
+        rvisit(op.lhs);
+        rvisit(op.rhs);
         level--;
         
         std::cout   << prefix
@@ -411,8 +353,8 @@ public:
                     << "<slash>\n";
         
         level++;
-        visit(util::get(op.lhs()));
-        visit(util::get(op.rhs()));
+        rvisit(op.lhs);
+        rvisit(op.rhs);
         level--;
         
         std::cout   << prefix
@@ -424,7 +366,7 @@ public:
 
         std::cout   << prefix
                     << "<constant> "
-                    << util::to_string(cnst.val())
+                    << util::to_string(cnst.val)
                     << " </constant>\n";
     }
 };
